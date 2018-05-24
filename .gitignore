@@ -1,0 +1,44 @@
+git
+git/**
+eventmachine/
+eventmachine/**/*.*
+shared/local_paths.ps1
+
+aa_testing.ps1
+package/
+
+*.log
+*.txt
+*any.pkg.tar.xz
+*any.pkg.tar.xz.sig
+*windows.tar.lzma
+*windows.tar
+
+# ==================================================== Windows
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ==================================================== OSX
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

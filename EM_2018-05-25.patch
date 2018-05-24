@@ -1,0 +1,36 @@
+diff --git a/tests/test_attach.rb b/tests/test_attach.rb
+index 4d06675..99ef107 100644
+--- a/tests/test_attach.rb
++++ b/tests/test_attach.rb
+@@ -174,6 +175,7 @@ class TestAttach < Test::Unit::TestCase
+ 
+   # This test shows that watch_only? is false for EM.attach
+   def test_attach_data
++    pend('FIXME: Windows as of 2018-05-26') if windows?
+     r, w = IO.pipe
+     $watch_only = nil
+     $read = []
+diff --git a/tests/test_httpclient2.rb b/tests/test_httpclient2.rb
+index 9a3d242..6485296 100644
+--- a/tests/test_httpclient2.rb
++++ b/tests/test_httpclient2.rb
+@@ -118,7 +118,7 @@ class TestHttpClient2 < Test::Unit::TestCase
+     omit("No SSL") unless EM.ssl?
+     d = nil
+     EM.run {
+-      setup_timeout(windows? ? 3.5 : 1)
++      setup_timeout(windows? ? 6 : 1)
+       http = silent { EM::P::HttpClient2.connect :host => 'www.google.com', :port => 443, :tls => true }
+       d = http.get "/"
+       d.callback {EM.stop}
+diff --git a/lib/em/version.rb b/lib/em/version.rb
+index 353a589..4fc7515 100644
+--- a/lib/em/version.rb
++++ b/lib/em/version.rb
+@@ -1,3 +1,3 @@
+-module EventMachine
+-  VERSION = "1.2.5"
+-end
++module EventMachine
++  VERSION = "1.3.0"
++end
