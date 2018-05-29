@@ -35,7 +35,7 @@ function Pre-Compile {
 
 #———————————————————————————————————————————————————————————————— Run-Tests
 function Run-Tests {
-  gem update test-unit -N --user-install
+  gem update rake test-unit -N --user-install
   ruby -v
   rake -N -R norakefiles | Tee-Object -Variable test_results
   ruby -v
