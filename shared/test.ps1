@@ -40,7 +40,7 @@ function minitest {
 # test-unit results parser
 function test_unit {
   if ($test_summary -eq '') {
-    $test_summary    = "Tests  Asserts  Fails  Errors  Pend  Ommited  Notes  Ruby"
+    $test_summary    = "Tests  Asserts  Fails  Errors  Pend  Omitted  Notes  Ruby"
     $test_summary += "`n                                                                 $r_arch"
     $first_arch = $r_arch
   }
