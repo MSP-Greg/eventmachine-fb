@@ -6,37 +6,38 @@ This script is utility script, and should not require changes for any gems
 Code by MSP-Greg, see https://github.com/MSP-Greg/appveyor-utilities
 #>
 
-if ( Test-Path -Path $dir_gem ) { Remove-Item -Path $dir_gem -Recurse -Force }
+# delete everything in gem directory
+if ( Test-Path -Path $dir_gem -PathType Container) {
+  Remove-Item -Path $dir_gem -Recurse -Force
+}
 
 #———————————————————————————————————————————————————————— Download & Process Repo
+Write-Host "Cloning $repo_name..." -ForegroundColor $fc
 #git clone -q --depth=5 --branch=v$tag $url_repo $dir_gem
-git clone -q --depth=5 --branch=master $url_repo $dir_gem
+git.exe clone -q --depth=5 --branch=master $url_repo $dir_gem
 
 # Typically for patches, etc
 Repo-Changes
 
-# Copy fat binary rb files
+# Copy fat binary rb files if used
 foreach ($ext in $exts) {
   $fn = $ext.so + '.rb'
-  Copy-Item -Path $dir_ps\$fn -Destination $dir_gem\$dest_so\$fn -Force
+  if ( Test-Path -Path $dir_ps\$fn -PathType Leaf) {
+    Copy-Item -Path $dir_ps\$fn -Destination $dir_gem\$dest_so\$fn -Force
+  }
 }
 
-# Copy Rakefile if it exists
-if ( Test-Path -Path ./Rakefile ) {
-  Copy-Item -Path $dir_ps\Rakefile -Destination $dir_gem -Force
+# Copy Rakefile_wintest if it exists
+if ( Test-Path -Path ./Rakefile_wintest -PathType Leaf) {
+  Copy-Item -Path $dir_ps\Rakefile_wintest -Destination $dir_gem -Force
 }
 
 foreach ($r_arch in $r_archs) {
 
   [string[]]$so_dests = @()
 
-  # Remove tmp build folder
-  if ( Test-Path -Path $dir_gem\tmp\$r_arch ) {
-    Remove-Item  -Path $dir_gem\tmp\$r_arch -Recurse -Force
-  }
-                         
-  if ($r_arch -eq 'x64-mingw32') {
-          $suf = '-x64' ; $dk = $DK64w ; $plat = 'x64-mingw32' }
+  if ($r_arch -eq 'x64-mingw32')
+        { $suf = '-x64' ; $dk = $DK64w ; $plat = 'x64-mingw32' }
    else { $suf = ''     ; $dk = $DK32w ; $plat = 'x86-mingw32' }
 
   # Update MSYS2 base files (toolchain & base-devel)
@@ -46,26 +47,31 @@ foreach ($r_arch in $r_archs) {
  
   foreach ($ruby in $rubies) {
     # Loop if ruby version does not exist
-    if( !( Test-Path -Path $dir_ruby$ruby$suf ) ) { $foreach.MoveNext | Out-Null }
-    
+    if( !( Test-Path -Path $dir_ruby$ruby$suf  -PathType Container) ) {
+      $foreach.MoveNext | Out-Null }
+   
     # Set up path with Ruby bin
     $env:path = "$dir_ruby$ruby$suf\bin;"
+
     # Add build system bin folders
-    $env:path += if ($ruby -ge '24') { "$msys2\$mingw\bin;$msys2\usr\bin;"
-                 } else              { "$dk\mingw\bin;$dk\bin;" }
+    $env:path += if ($ruby -ge '24') { "$msys2\$mingw\bin;$msys2\usr\bin;" }
+                                else { "$dk\mingw\bin;$dk\bin;"            }
+
     # Add base items
     $env:path += $base_path
-    Check-SetVars
     
     # match Appveyor variable for use in appveyor_setup.ps1
     $env:ruby_version = "$ruby$suf"
 
     # Out info to console
     Write-Host "`n$($dash * 75) ruby$ruby$suf" -ForegroundColor $fc
+    Check-SetVars
     ruby.exe -rdevkit -v
-    Write-Host RubyGems (gem --version)`n
+    Write-Host RubyGems (gem --version)
 
     Pre-Compile
+
+    if ($abi_digits -eq 2) { $abi_vers = $abi_vers -replace "\.0\z", "" }
     
     $dest = "$dir_gem\$dest_so\$abi_vers"
     New-Item -Path $dest -ItemType Directory 1> $null
@@ -76,7 +82,7 @@ foreach ($r_arch in $r_archs) {
       New-Item -Path $src_dir -ItemType Directory 1> $null
       Push-Location -Path $src_dir
       Write-Host "`n$($dash * 50)" Compiling ruby$ruby$suf $ext.so -ForegroundColor $fc
-      Write-Host options  $env:b_config
+      Write-Host "options:$($env:b_config.replace("--", "`n   --"))" -ForegroundColor $fc
       # Invoke-Expression needed due to spaces in $env:b_config
       iex "ruby.exe -I. $dir_gem\$($ext.conf) $env:b_config"
       make.exe
