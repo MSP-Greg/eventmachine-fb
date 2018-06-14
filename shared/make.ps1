@@ -66,7 +66,7 @@ foreach ($r_arch in $r_archs) {
     # Out info to console
     Write-Host "`n$($dash * 75) ruby$ruby$suf" -ForegroundColor $fc
     Check-SetVars
-    ruby.exe -rdevkit -v
+    ruby.exe -v
     Write-Host RubyGems (gem --version)
 
     Pre-Compile
@@ -82,10 +82,13 @@ foreach ($r_arch in $r_archs) {
       New-Item -Path $src_dir -ItemType Directory 1> $null
       Push-Location -Path $src_dir
       Write-Host "`n$($dash * 50)" Compiling ruby$ruby$suf $ext.so -ForegroundColor $fc
-      Write-Host "options:$($env:b_config.replace("--", "`n   --"))" -ForegroundColor $fc
+      if ($env:b_config) {
+        Write-Host "options:$($env:b_config.replace("--", "`n   --"))" -ForegroundColor $fc
+      }
       # Invoke-Expression needed due to spaces in $env:b_config
       iex "ruby.exe -I. $dir_gem\$($ext.conf) $env:b_config"
-      make.exe
+      if ($isRI2) { make -j2 } else { make }
+
       $fn = $so + '.so'
       Write-Host Creating $dest_so\$abi_vers\$fn
       Copy-Item -Path $fn -Destination $dest\$fn -Force

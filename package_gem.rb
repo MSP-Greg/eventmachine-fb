@@ -10,5 +10,8 @@ Dir.chdir ('./eventmachine') {
   spec.files.concat ['Rakefile', 'Rakefile_wintest', 'lib/fastfilereaderext.rb', 'lib/rubyeventmachine.rb']
   spec.files.concat Dir['lib/**/*.so']
   spec.platform = ARGV[0]
+
+  spec.metadata.delete("msys2_mingw_dependencies") if spec.respond_to?(:metadata=)
+
   Gem::Package.build(spec)
 }

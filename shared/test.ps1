@@ -8,7 +8,6 @@ Code by MSP-Greg, see https://github.com/MSP-Greg/appveyor-utilities
 
 New-Variable -Name test_results     -Value ''  -Option AllScope -Scope Script
 New-Variable -Name test_summary     -Value ''  -Option AllScope -Scope Script
-New-Variable -Name ttl_errors_fails -Value 0   -Option AllScope -Scope Script
 New-Variable -Name r_arch           -Value ''  -Option AllScope -Scope Script
 New-Variable -Name first_arch       -Value ''  -Option AllScope -Scope Script
 New-Variable -Name gem_suf          -Value ''  -Option AllScope -Scope Script
@@ -16,7 +15,25 @@ New-Variable -Name gem_full         -Value ''  -Option AllScope -Scope Script
 
 $dt = Get-Date -UFormat "%Y-%m-%d_%H-%M"
 
-$ttl_errors_fails = [int]0
+function Get-MS {
+  if ($test_summary -match "(?m)^Finished in (\d+\.\d{3})" ) {
+    return [int]([float]$matches[1] * 1000)
+  } else { return $null}
+}
+
+function AV-Test($outcome) {
+  if ($outcome -eq 'Failed') {
+    Add-AppveyorTest -Name "Ruby$ruby$suf" -Outcome 'Failed' `
+      -StdOut $test_results.replace("`n", "`r`n") -Framework "ruby" `
+      -FileName $gem_full
+  } else {
+    $oc = if ($outcome -eq 0) {'Passed'} else {'Failed'}
+    $ms = Get-MS
+    Add-AppveyorTest -Name "Ruby$ruby$suf" -Outcome $oc -Duration $ms `
+      -StdOut $test_results.replace("`n", "`r`n") -Framework "ruby" `
+      -FileName $gem_full
+  }
+}
 
 # minitest result parser
 function minitest {
@@ -29,28 +46,18 @@ function minitest {
     $test_summary += "`n                                                  $r_arch"
     $first_arch = $r_arch
   }
-  if ( $test_results -match "(?m)^Finished in (\d+\.\d{3})" ) {
-    Write-Host matches`n$matches
-  }
 
   $results = ($test_results -match "(?m)^\d+ runs.+ skips" | Out-String)
 
   if ($results) {
     $ary = ($results -replace "[^\d]+", ' ').Trim().Split(' ')
     $errors_fails = [int]$ary[2] + [int]$ary[3]
-    $ms = [int]([float]($seconds.Split(' ')[2]) * 1000)
-    
-    if ($in_av) {
-      $ms = [int]([float]($seconds.Split(' ')[-1]) * 1000)
-      $outcome = if ($errors_fails -eq 0) { 'Passed' } else { 'Failed' }
-      Add-AppveyorTest -Name "Ruby$ruby$suf" -Outcome $outcome -StdOut $test_results `
-        -Framework "ruby" -FileName $gem_full -Duration $ms
-    }
-
+    # if ($in_av) { AV-Test $errors_fails }
     $ttl_errors_fails += $errors_fails
     $ary += @("Ruby$ruby$suf") + $ruby_v
     $test_summary += "`n{0,4:n}    {1,4:n}   {2,4:n}    {3,4:n}    {4,4:n}   {5,-11} {6,-15} ({7}" -f $ary
   } else {
+    # if ($in_av) { AV-Test 'Failed' }
     ttl_errors_fails += 1000
     $ary = @("Ruby$ruby$suf") + $ruby_v
     $test_summary += "`ntesting aborted?                      {0,-11} {1,-15} ({2}}" -f $ary
@@ -72,14 +79,17 @@ function test_unit {
   if ($results) {
     $ary = ($results -replace "[^\d]+", ' ').Trim().Split(' ')
     $errors_fails = [int]$ary[2] + [int]$ary[3]
+    # if ($in_av) { AV-Test $errors_fails }
     $ttl_errors_fails += $errors_fails
     $ary += @("Ruby$ruby$suf") + $ruby_v
     $test_summary += "`n{0,4:n}    {1,4:n}   {2,4:n}    {3,4:n}   {4,4:n}    {5,4:n}   {6,4:n}    {7,-11} {8,-15} ({9}" -f $ary
   } else {
+    # if ($in_av) { AV-Test 'Failed' }
     $ary = @("Ruby$ruby$suf") + $ruby_v
     $ttl_errors_fails += 1000
     $test_summary += "`ntesting aborted?                                     {0,-11} {1,-15} ({2}" -f $ary
   }
+Write-Host ttl_errors_fails $ttl_errors_fails
 }
 
 foreach ($r_arch in $r_archs) {

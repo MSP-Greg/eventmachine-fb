@@ -32,7 +32,9 @@ if ($env:APPVEYOR) {
   . $PSScriptRoot\local_paths.ps1
 }
 
-if( !(Test-Path -Path $pkgs -PathType Container) ) { New-Item -Path $pkgs -ItemType Directory 1> $null }
+if( !(Test-Path -Path $pkgs -PathType Container) ) {
+  New-Item -Path $pkgs -ItemType Directory 1> $null
+}
 
 Make-Const dir_user  "$env:USERPROFILE\.gem\ruby\"
 # Download locations
@@ -55,6 +57,8 @@ New-Variable -Name gem_dflt -Option AllScope -Scope Script  # Gem.default_dir
 New-Variable -Name gem_user -Option AllScope -Scope Script  # Gem.user_dir
 New-Variable -Name dk_b     -Option AllScope -Scope Script  # DevKit folder 
 
+New-Variable -Name ttl_errors_fails -Value 0 -Option AllScope -Scope Script
+
 New-Variable -Name need_refresh -Value $true -Option AllScope -Scope Script
 New-Variable -Name ssl_vhash    -Value @{}   -Option AllScope -Scope Script
 
@@ -67,13 +71,7 @@ function Check-SetVars {
   if ($is64) { $m = 'mingw-w64-x86_64-' ; $mingw = 'mingw64' }
     else     { $m = 'mingw-w64-i686-'   ; $mingw = 'mingw32' }
 
-  if ( !($isRI2) ) {
-# Write-Host "Setting b_config to -- --with-opt-include=$DKu/mingw/include"  -ForegroundColor $fc
-    $env:SSL_CERT_FILE = $SSL_CERT_FILE
-  } else {
-# Write-Host "Setting b_config to -- --use-system-libraries"  -ForegroundColor $fc
-    $env:b_config = '-- --use-system-libraries'    
-  }
+  if ( !($isRI2) ) { $env:SSL_CERT_FILE = $SSL_CERT_FILE }
 
   $t = (&ruby.exe -e "STDOUT.write Gem.default_dir + '|' + Gem.user_dir" | Out-String).Trim()
   $gem_dflt, $gem_user = $t.Split('|')
@@ -100,7 +98,6 @@ function Check-OpenSSL {
 
     $DKu = $DKw.Replace('\', '/')
     if ($ssl_vhash[$86_64] -ne $openssl) {
-      Write-Host $openssl - Retrieving and installing -ForegroundColor $fc
       # Install it
       if ($is64) { DevKit-Package $openssl 64
           } else { DevKit-Package $openssl 32 }
@@ -115,11 +112,11 @@ function Check-OpenSSL {
     $env:SSL_VERS = (&"$DKu/mingw/$dk_b/bin/openssl.exe" version | Out-String).Trim()
   } else {
     #————————————————————————————————————————————————————————————————————————— RubyInstaller2
-    if ($is64) { $key = '77D8FA18' ; $uri = $rubyloco ; $mingw = 'mingw64' }
-      else     { $key = 'BE8BF1C5' ; $uri = $ri2_pkgs ; $mingw = 'mingw32' }
+    if ($is64) { $key = '77D8FA18' ; $uri = $rubyloco ; $mingw = 'mingw64' ; $bit = '64 bit' }
+      else     { $key = 'BE8BF1C5' ; $uri = $ri2_pkgs ; $mingw = 'mingw32' ; $bit = '32 bit'}
 
     if ($ssl_vhash[$mingw] -ne $openssl) {
-      Write-Host $openssl - Retrieving and installing -ForegroundColor $fc
+      Write-Host MSYS2/MinGW - $openssl $bit - Retrieving and installing -ForegroundColor $fc
       $t = $openssl
       if ($env:ruby_version.StartsWith('24')) {
         &"$msys2\usr\bin\pacman.exe" -S --noconfirm --noprogressbar $($m + 'openssl')

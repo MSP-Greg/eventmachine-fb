@@ -4,11 +4,11 @@
 . ./shared/appveyor_setup.ps1
 
 Make-Const gem_name  'eventmachine'
-Make-Const repo_name  'eventmachine'
+Make-Const repo_name 'eventmachine'
 Make-Const url_repo  'https://github.com/eventmachine/eventmachine.git'
 
 #———————————————————————————————————————————————————————————————— make info
-Make-Const dest_so   'lib'
+Make-Const dest_so  'lib'
 Make-Const exts     @(
   @{ 'conf' = 'ext/extconf.rb'                ; 'so' = 'rubyeventmachine'  },
   @{ 'conf' = 'ext/fastfilereader/extconf.rb' ; 'so' = 'fastfilereaderext' }
